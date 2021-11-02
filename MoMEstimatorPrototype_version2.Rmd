@@ -1,0 +1,348 @@
+---
+title: "Method of Estimation Module Prototype"
+output: html_notebook
+---
+
+This is an [R Markdown](http://rmarkdown.rstudio.com) Notebook. When you execute code within the notebook, the results appear beneath the code. 
+
+Try executing this chunk by clicking the *Run* button within the chunk or by placing your cursor inside it and pressing *Ctrl+Shift+Enter*. 
+
+<h1>Importing Libraries</h1>
+```{r}
+# Import libraries (gmm, ggplot2, etc.)
+library(gmm)
+```
+<h1> Moment Condition Definition Functions </h1>
+```{r}
+# Binomial
+binomial <- function(theta, sample_data) { # Theta = MoM estimates to be found
+  
+  n <- theta[1]
+  prob <- theta[2]
+  
+  theoretical_mean <- n * prob
+  theoretical_variance <- theoretical_mean * (1 - prob)
+  
+  mean_moment_condition <- theoretical_mean - sample_data
+  variance_moment_condition <- theoretical_variance  - (sample_data - theoretical_mean) ^ 2
+  
+  moment_conditions <- cbind(mean_moment_condition, variance_moment_condition)
+  return(moment_conditions)
+}
+```
+
+```{r}
+# Uniform
+uniform <- function(theta, sample_data) { # Theta = MoM estimates to be found
+  a <- theta[1]
+  b <- theta[2]
+  
+  theoretical_mean <- (a + b) / 2
+  theoretical_variance <- (b - a) ^ 2 / 12
+  
+  mean_moment_condition <- theoretical_mean - sample_data
+  variance_moment_condition <- theoretical_variance - (sample_data - theoretical_mean) ^ 2
+  
+  moment_conditions <- cbind(mean_moment_condition, variance_moment_condition)
+  return(moment_conditions)
+}
+```
+
+```{r}
+# Beta
+beta_func <- function(theta, sample_data) { # Theta = MoM estimates to be found
+  alpha <- theta[1]
+  beta <- theta[2]
+  alpha_plus_beta <- alpha + beta
+  
+  theoretical_mean <- alpha / alpha_plus_beta
+  theoretical_variance <- alpha * beta / (alpha_plus_beta ^ 2 * (alpha_plus_beta + 1))
+  
+  mean_moment_condition <- theoretical_mean - sample_data
+  variance_moment_condition <- theoretical_variance - (sample_data - theoretical_mean) ^ 2
+  
+  moment_conditions <- cbind(mean_moment_condition, variance_moment_condition)
+  return(moment_conditions)
+}
+```
+
+```{r}
+# Normal
+normal <- function(theta, sample_data) { # Theta = MoM estimates to be found
+  mu <- theta[1]
+  sigma <- theta[2]
+  
+  theoretical_mean <- mu
+  theoretical_variance <- sigma ^ 2
+  
+  mean_moment_condition <- theoretical_mean - sample_data
+  variance_moment_condition <- theoretical_variance - (sample_data - theoretical_mean) ^ 2
+  
+  moment_conditions <- cbind(mean_moment_condition, variance_moment_condition)
+  return(moment_conditions)
+}
+```
+
+```{r}
+# Poisson
+poisson <- function(theta, sample_data) { # Theta = MoM estimates to be found
+  lambda <- theta[1]
+  
+  theoretical_mean <- lambda
+  
+  mean_moment_condition <- theoretical_mean - sample_data
+  
+  moment_conditions <- cbind(mean_moment_condition)
+  return(moment_conditions)
+}
+```
+
+```{r}
+# Geometric
+geometric <- function(theta, sample_data) { # Theta = MoM estimates to be found
+  prob <- theta[1]
+  
+  theoretical_mean <- 1/prob
+  
+  mean_moment_condition <- theoretical_mean - sample_data
+  
+  moment_conditions <- cbind(mean_moment_condition)
+  return(moment_conditions)
+}
+```
+
+```{r}
+# Exponential
+exponential <- function(theta, sample_data) { # Theta = MoM estimates to be found
+  beta <- theta[1]
+  
+  theoretical_mean <- beta
+  
+  mean_moment_condition <- theoretical_mean - sample_data
+  
+  moment_conditions <- cbind(mean_moment_condition)
+  return(moment_conditions)
+}
+```
+
+```{r}
+# Gamma
+gamma <- function(theta, sample_data) { # Theta = MoM estimates to be found
+  alpha <- theta[1]
+  beta <- theta[2]
+  
+  theoretical_mean <- alpha * beta
+  theoretical_variance <- alpha * beta ^ 2
+  
+  mean_moment_condition <- theoretical_mean - sample_data
+  variance_moment_condition <- theoretical_variance - (sample_data - theoretical_mean) ^ 2
+  
+  moment_conditions <- cbind(mean_moment_condition, variance_moment_condition)
+  return(moment_conditions)
+}
+```
+
+
+# Multinomial
+multinomial <- function(theta, sample_data) { # Theta = MoM estimates to be found
+  
+  
+  return(errors)
+}
+
+# Multivariate normal
+multivariate_normal <- function(theta, sample_data) { # Theta = MoM estimates to be found
+  return(moments)
+}
+
+
+```{r}
+# GMM Wrapper Function
+get_estimators <- function(sample_data, distribution_name, n = 100) {
+  
+  if(distribution_name == "normal") {
+    gmm_result <- gmm(normal, sample_data, c(mu = 0, sigma = 0))
+    
+  } else if (distribution_name == "binomial") {
+    gmm_result <- gmm(binomial, sample_data, c(n = n, prob = 0.1))
+    
+  } else if (distribution_name == "poisson") {
+    gmm_result <- gmm(poisson, sample_data, c(lambda = 1))
+    
+  } else if (distribution_name == "gamma") {
+    gmm_result <- gmm(gamma, sample_data, c(alpha = 1, beta = 1))
+    
+  } else if (distribution_name == "beta") {
+    gmm_result <- gmm(beta_func, sample_data, c(alpha = 1, beta = 1))
+    
+  }  else if (distribution_name == "exponential") {
+    gmm_result <- gmm(exponential, sample_data, c(beta = 1))
+    
+  }  else if (distribution_name == "geometric") {
+    gmm_result <- gmm(geometric, sample_data, c(prob = 0.1))
+    
+  }   else if (distribution_name == "uniform") {
+    gmm_result <- gmm(uniform, sample_data, c(a = 0, b = 1))
+    
+  } else {
+    print("Invalid distribution name")
+    
+  }
+  
+  return(gmm_result)
+}
+```
+
+```{r}
+get_sample <- function(sample_size, distribution_name, parameter_list) {
+  if(sample_size > 0) {
+    if(distribution_name == "normal") {
+      sample_data <- rnorm(n = sample_size, mean = parameter_list$mu, sd = parameter_list$sigma)
+  
+    } else if (distribution_name == "binomial") {
+      sample_data <- rbinom(n = sample_size, size = parameter_list$n, prob = parameter_list$prob)
+    
+    } else if (distribution_name == "poisson") {
+      sample_data <- rpois(n = sample_size, lambda = parameter_list$lambda)
+    
+    } else if (distribution_name == "gamma") {
+      sample_data <- rgamma(n = sample_size, shape = parameter_list$alpha, rate = parameter_list$beta)
+    
+    } else if (distribution_name == "beta") {
+      sample_data <- rbeta(n = sample_size, shape1 = parameter_list$alpha, shape2 = parameter_list$beta)
+    
+    }  else if (distribution_name == "exponential") {
+      sample_data <- rexp(n = sample_size, rate = parameter_list$beta)
+    
+    }  else if (distribution_name == "geometric") {
+      sample_data <- rgeom(n = sample_size, prob = parameter_list$prob)
+    
+    }   else if (distribution_name == "uniform") {
+      sample_data <- runif(n = sample_size, min = parameter_list$a, max = parameter_list$b)
+    
+    } else {
+      print("Invalid distribution name")
+    
+    }
+  } else {
+    print("Invalid sample_size")
+  }
+  
+  return(sample_data)
+}
+```
+
+<h1>Testing</h1>
+<br>
+<h2>Testing get_sample()</h2>
+```{r}
+#####
+# General code
+#####
+# sample_size <- 100
+# distribution_name <- ""
+# parameter_list <- list()
+# names(parameter_list) <- c()
+
+# sample_data <- get_sample(sample_size = sample_size, distribution_name = distribution_name, parameter_list = parameter_list)
+#####
+
+# For Normal Distribution
+set.seed(123)
+sample_size <- 100
+distribution_name <- "normal"
+parameter_list <- list(0, 1)
+names(parameter_list) <- c("mu", "sigma")
+
+normal_sample_data <- get_sample(sample_size = sample_size, distribution_name = distribution_name, parameter_list = parameter_list)
+```
+
+```{r}
+# For Binomial Distribution
+set.seed(123)
+sample_size <- 100
+distribution_name <- "binomial"
+n <- 200
+parameter_list <- list(n, 0.5)
+names(parameter_list) <- c("n", "prob")
+
+binomial_sample_data <- get_sample(sample_size = sample_size, distribution_name = distribution_name, parameter_list = parameter_list)
+```
+
+
+```{r}
+# For Geometric Distribution
+set.seed(123)
+sample_size <- 100
+distribution_name <- "geometric"
+parameter_list <- list(0.3)
+names(parameter_list) <- c("prob")
+
+geometric_sample_data <- get_sample(sample_size = sample_size, distribution_name = distribution_name, parameter_list = parameter_list)
+```
+
+```{r}
+# For Gamma Distribution
+set.seed(123)
+sample_size <- 100
+distribution_name <- "gamma"
+parameter_list <- list(5, 1)
+names(parameter_list) <- c("alpha", "beta")
+
+gamma_sample_data <- get_sample(sample_size = sample_size, distribution_name = distribution_name, parameter_list = parameter_list)
+```
+<br>
+<h2>Testing Method of Moment Condition Functions with gmm()</h2>
+```{r}
+# For Normal Distribution
+normal_result <- gmm(normal, normal_sample_data, c(mu = 0, sigma = 0))
+summary(normal_result)
+```
+
+```{r}
+binomial_result <- gmm(binomial, binomial_sample_data, c(n = 50, prob = 0.1))
+summary(binomial_result)
+```
+
+```{r}
+# For Geometric Distribution
+geometric_result <- gmm(geometric, geometric_sample_data, c(prob = 0.1))
+summary(geometric_result)
+```
+
+```{r}
+# For Gamma Distribution
+gamma_result <- gmm(gamma, gamma_sample_data, c(alpha = 1, beta = 1))
+summary(gamma_result)
+```
+
+<h2>Testing get_estimators()</h2>
+```{r}
+# For Normal Distribution
+normal_result <- get_estimators(normal_sample_data, "normal")
+summary(normal_result)
+```
+
+```{r}
+# For Binomial Distribution
+binomial_result <- get_estimators(binomial_sample_data, "binomial")
+summary(binomial_result)
+```
+
+```{r}
+# For Geometric Distribution
+geometric_result <- get_estimators(geometric_sample_data, "geometric")
+summary(geometric_result)
+```
+
+```{r}
+# For Gamma Distribution
+gamma_result <- get_estimators(gamma_sample_data, "gamma")
+summary(gamma_result)
+```
+
+Add a new chunk by clicking the *Insert Chunk* button on the toolbar or by pressing *Ctrl+Alt+I*.
+
+When you save the notebook, an HTML file containing the code and output will be saved alongside it (click the *Preview* button or press *Ctrl+Shift+K* to preview the HTML file).
+
+The preview shows you a rendered HTML copy of the contents of the editor. Consequently, unlike *Knit*, *Preview* does not run any R code chunks. Instead, the output of the chunk when it was last run in the editor is displayed.
